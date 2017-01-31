@@ -37,7 +37,7 @@ static BOOL enabled;// Contains the user set BOOL that determines wether or not 
 
 // Preferences
 - (void)getLatestPreferences {// Fetches the last saved state of the user set preferences: passcode and enabled.
-    // Set our prefs variables
+    // Get the passcode of the KeychainItem (security).
     KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:uniqueDomainString accessGroup:nil];
 
     passcode = [keychainItem objectForKey:(id)kSecValueData];
@@ -45,7 +45,8 @@ static BOOL enabled;// Contains the user set BOOL that determines wether or not 
     [keychainItem release];
     
     HBInfoLog(@"Set passcode to: [%@]", passcode);
-
+  
+    // Get the enabled state out of the UserDefaults.
     enabled = [[[NSUserDefaults standardUserDefaults] objectForKey:@"enabled" inDomain:uniqueDomainString] boolValue];
 }
 
