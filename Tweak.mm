@@ -28,7 +28,6 @@ static BOOL enabled;// Contains the user set BOOL that determines wether or not 
 
 @interface PCFiOS : NSObject// Main Tweak Class
 - (void)getLatestPreferences;
-
 @end
 
 
@@ -50,21 +49,17 @@ static BOOL enabled;// Contains the user set BOOL that determines wether or not 
     enabled = [[[NSUserDefaults standardUserDefaults] objectForKey:@"enabled" inDomain:uniqueDomainString] boolValue];
 }
 
-
 @end
 
 
 @implementation UIAlertViewDelegateClass
-
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {}
-
 - (void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex {}
 
 @end
 
 
 static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {}
-
 
 
 %ctor {// Called when loading the binary.
