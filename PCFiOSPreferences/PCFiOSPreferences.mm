@@ -25,7 +25,7 @@ static UIAlertView *passcodeAV;
 static UIAlertView *timeLeftAV;
 
 @implementation ParentalControlsForiOSListController
-- (void)setPreferences {
+- (void)getLatestPreferences {
     //set our prefs variables
     KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:@"com.ge0rges.pcfios" accessGroup:nil];
     
@@ -44,7 +44,7 @@ static UIAlertView *timeLeftAV;
     
     //show alertView asking for passcode only if it isn't the first time the user enters the prefs
     //get the passcode
-    [self setPreferences];
+    [self getLatestPreferences];
 
     if (![passcode isEqualToString:@""] && enabled) {
         //configure the passcodeAV
