@@ -62,7 +62,7 @@ static UIAlertView *timeLeftAV;
   [self getLatestPreferences];
 
   HBLogDebug(@"settings got latest prefs, checking if first time");
-  if ((!passcode || passcode.length == 0) && enabled) {
+  if (passcode && enabled) {
     // Configure the passcodeAV
     HBLogDebug(@"settings passcode AV setting up to show");
     passcodeAV = [[UIAlertView alloc] initWithTitle:@"Please Enter your Parent-Pass to access the Parental Controls" message:nil delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Authenticate", @"Time Left", nil];
@@ -75,7 +75,7 @@ static UIAlertView *timeLeftAV;
 
   }
 
-  HBLogInfo(@"settings returned specifiers");
+  HBLogDebug(@"settings returned specifiers");
   return _specifiers;
 }
 
@@ -230,26 +230,26 @@ static UIAlertView *timeLeftAV;
 - (void)layoutSubviews {
   [super layoutSubviews];
 
-  // Numbers only keyboard.
-  ((UITextField *)[self textField]).keyboardType = UIKeyboardTypeNumberPad;
-
-  //add a gesture recognizer to the superview so user can dismiss keyboard by tapping above it
-  UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissKeyboard)];
-  [tap setCancelsTouchesInView:NO];
-
-  [(UIView *)self.superview.superview addGestureRecognizer:tap];
-
-  [tap release];
-
-  //set the keyboard text to the password if there is one
-  KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:uniqueDomainString accessGroup:nil];
-  NSString *password = [keychainItem objectForKey:(id)kSecValueData];
-
-  if (password.length > 0) {
-    ((UITextField *)[self textField]).text = password;
-  }
-
-  [keychainItem release];
+  // // Numbers only keyboard.
+  // ((UITextField *)[self textField]).keyboardType = UIKeyboardTypeNumberPad;
+  //
+  // //add a gesture recognizer to the superview so user can dismiss keyboard by tapping above it
+  // // UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissKeyboard)];
+  // // [tap setCancelsTouchesInView:NO];
+  // //
+  // // [(UIView *)self.superview.superview addGestureRecognizer:tap];
+  // //
+  // // [tap release];
+  //
+  // //set the keyboard text to the password if there is one
+  // KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:uniqueDomainString accessGroup:nil];
+  // NSString *password = [keychainItem objectForKey:(id)kSecValueData];
+  //
+  // if (password.length > 0) {
+  //   ((UITextField *)[self textField]).text = password;
+  // }
+  //
+  // [keychainItem release];
 }
 
 - (void)textFieldDidEndEditing:(UITextField *)textField {

@@ -9,7 +9,6 @@
 #import "KeychainItemWrapper.h"
 
 // DEFINITIONS
-#define kCFCoreFoundationVersionNumber_iOS_7_0 847.20
 #define uniqueDomainString @"com.ge0rges.pcfios"
 #define uniqueNotificationString @"com.ge0rges.pcfios.preferences.changed"
 
@@ -88,6 +87,7 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 }
 
 %ctor {// Called when loading the binary.
+  HBLogDebug(@"PCFiOS: ctor called.");
 
   // Fetch the latest preferences.
   getLatestPreferences();
@@ -129,6 +129,8 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 %hook SBApplicationIcon
 
 - (void)launchFromLocation:(SBIconLocation)location context:(id)context {// Called when user tries to launch an app. (iOS 9-10)
+  HBLogDebug(@"PCFiOS: launchFromLocation hooked.");
+
   if (applicationIconWithLocationShouldLaunch(self, location)) {// Check wether the time has run out.
     %orig();
 
@@ -143,9 +145,5 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 %end
 
 %hook SBApplication
-
-- (void)processWillLaunch:(id)arg1 {
-  HBLogDebug(@"processWillLaunch hooked.");
-}
 
 %end
