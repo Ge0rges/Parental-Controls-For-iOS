@@ -11,7 +11,7 @@
 // DEFINITIONS
 #define kCFCoreFoundationVersionNumber_iOS_7_0 847.20
 #define uniqueDomainString @"com.ge0rges.pcfios"
-#define uniqueNotificationString @"com.gnos.pcfios.preferences.changed"
+#define uniqueNotificationString @"com.ge0rges.pcfios.preferences.changed"
 
 /* FORWARD DECLARATIONS */
 @interface NSUserDefaults (UFS_Category)
@@ -144,7 +144,7 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 
 %hook SBApplication
 
--(void)processWillLaunch:(id)arg1 {
+- (void)processWillLaunch:(id)arg1 {
   HBLogDebug(@"processWillLaunch hooked.");
 }
 

@@ -50,9 +50,9 @@ static UIAlertView *timeLeftAV;
 }
 
 
-- (id)specifiers {// Called when preferences load.
+- (NSArray *)specifiers {// Called when preferences load.
   HBLogDebug(@"settings specifiers loading");
-  if(_specifiers == nil) {
+  if (!_specifiers) {
     _specifiers = [[self loadSpecifiersFromPlistName:@"PCFiOSPreferences" target:self] retain];
     HBLogDebug(@"settings specifiers loaded");
   }
@@ -62,7 +62,7 @@ static UIAlertView *timeLeftAV;
   [self getLatestPreferences];
 
   HBLogDebug(@"settings got latest prefs, checking if first time");
-  if (![passcode isEqualToString:@""] && enabled) {
+  if ((!passcode || passcode.length == 0) && enabled) {
     // Configure the passcodeAV
     HBLogDebug(@"settings passcode AV setting up to show");
     passcodeAV = [[UIAlertView alloc] initWithTitle:@"Please Enter your Parent-Pass to access the Parental Controls" message:nil delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Authenticate", @"Time Left", nil];
@@ -108,8 +108,8 @@ static UIAlertView *timeLeftAV;
     //show the time left alert view, start by gettingt he time left string
     int totalSeconds = [[[NSUserDefaults standardUserDefaults] objectForKey:@"savedTimeLeft" inDomain:uniqueDomainString] intValue];
     int seconds = totalSeconds % 60;
-    int minutes = (totalSeconds / 60) % 60;
-    int hours = totalSeconds / 3600;
+    int minutes = (totalSeconds/60) % 60;
+    int hours = totalSeconds/3600;
 
     NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
 
