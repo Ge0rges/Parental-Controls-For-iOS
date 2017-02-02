@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSTitleValueCell</string>
+			<key>icon</key>
+			<string>banner.png</string>
+			<key>height</key>
+			<integer>125</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.ge0rges.pcfios</string>
+			<key>key</key>
+			<string>enabled</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>PostNotification</key>
+			<string>com.ge0rges.pcfios.preferences.changed</string>
+		</dict>
+		<dict>
+			<key>label</key>
+			<string>Parent-Pass</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Used to access and modify these preferences as well as access Cydia. This should be kept secret from your child.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSecureEditTextCell</string>
+			<key>isNumeric</key>
+			<true/>
+			<key>placeholder</key>
+			<string>Enter your Parent-Pass here</string>
+			<key>cellClass</key>
+			<string>GKSecureEditTextCell</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Time Limits</string>
+			<key>footerText</key>
+			<string>Hours allowed per Weekday.</string>
+		</dict>
+		<dict>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<real>24</real>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>showValue</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.ge0rges.pcfios</string>
+			<key>key</key>
+			<string>hoursWeekdays</string>
+			<key>cellClass</key>
+			<string>GKSliderCell</string>
+		</dict>
+		<dict>
+			<key>footerText</key>
+			<string>Hours allowed per Weekend day. Time Limit changes will take effect the next day unless tweak is toggled (will reset time).</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<real>24</real>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>showValue</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.ge0rges.pcfios</string>
+			<key>key</key>
+			<string>hoursWeekends</string>
+			<key>cellClass</key>
+			<string>GKSliderCell</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Day limits</string>
+			<key>footerText</key>
+			<string>End hour for weekdays.</string>
+		</dict>
+		<dict>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<real>24</real>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>showValue</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.ge0rges.pcfios</string>
+			<key>key</key>
+			<string>hourInDayStopWeekdays</string>
+			<key>cellClass</key>
+			<string>GKSliderCell</string>
+		</dict>
+		<dict>
+			<key>footerText</key>
+			<string>End hour for weekends Hour after which device will be disabled disregarding if there is time left. (Changes take effect immediately).</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<real>24</real>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>showValue</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.ge0rges.pcfios</string>
+			<key>key</key>
+			<string>hourInDayStopWeekends</string>
+			<key>cellClass</key>
+			<string>GKSliderCell</string>
+		</dict>
+		<dict>
+			<key>label</key>
+			<string>Contact Me</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Developed by Ge0rges and Designed by ▲RTX © 2014</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openTwitter</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>twitter.png</string>
+			<key>label</key>
+			<string>Follow The Designer (▲RTX)</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openTwitter</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>twitter.png</string>
+			<key>label</key>
+			<string>Follow The Developer (Ge0rges)</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>sendEmail</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>mail.png</string>
+			<key>label</key>
+			<string>Send Us an Email</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>sendEmailFeature</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>mail.png</string>
+			<key>label</key>
+			<string>Send Us an Idea</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openWebsite</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>ge0rges.png</string>
+			<key>label</key>
+			<string>Visit The Developers Website</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Here’s to the crazy ones. The misfits. The rebels. The troublemakers. The round pegs in the square holes.
+
+The ones who see things differently. They’re not fond of rules. And they have no respect for the status quo. You can quote them, disagree with them, glorify or vilify them.
+
+But the only thing you can’t do is ignore them. Because they change things. They invent. They imagine. They heal. They explore. They create. They inspire. They push the human race forward.
+
+Maybe they have to be crazy.
+
+How else can you stare at an empty canvas and see a work of art? Or sit in silence and hear a song that’s never been written? Or gaze at a red planet and see a laboratory on wheels?
+
+We make tools for these kinds of people.
+
+While some see them as the crazy ones, we see genius. Because the people who are crazy enough to think they can change the world, are the ones who do. - Apple&apos;s Think Different Ad Campaign</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Parental Controls</string>
+</dict>
+</plist>

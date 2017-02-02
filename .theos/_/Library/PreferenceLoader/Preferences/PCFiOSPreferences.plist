@@ -1,0 +1,10 @@
+{
+	entry = {
+		bundle = PCFiOSPreferences;
+		cell = PSLinkCell;
+		detail = "PCFiOSPreferencesListController";
+		icon = "icon.png";
+		isController = 1;
+		label = "Parental Controls";
+	};
+}
