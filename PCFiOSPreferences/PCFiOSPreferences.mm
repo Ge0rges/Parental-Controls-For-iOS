@@ -7,9 +7,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-// CLASSES
-#import "KeychainItemWrapper.h"
-
 // DEFINITIONS
 #define uniqueDomainString @"com.ge0rges.pcfios"
 
@@ -35,18 +32,10 @@ static UIAlertView *timeLeftAV;
 // Preferences
 - (void)getLatestPreferences {// Fetches the last saved state of the user set preferences: passcode and enabled.
   // Get the passcode of the KeychainItem (security).
-  HBLogDebug(@"settings getting latest prefs");
-  KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:uniqueDomainString accessGroup:nil];
-  HBLogDebug(@"settings loaded keychain item");
-  passcode = [keychainItem objectForKey:(id)kSecValueData];
-  HBLogDebug(@"settings retrieved passcode");
-
-  [passcode retain];
-  [keychainItem release];
+  passcode = [[NSUserDefaults standardUserDefaults] objectForKey:@"password" inDomain:uniqueDomainString];
 
   // Get the enabled state out of the UserDefaults.
   enabled = [[[NSUserDefaults standardUserDefaults] objectForKey:@"enabled" inDomain:uniqueDomainString] boolValue];
-  HBLogDebug(@"settings retrieved enabled");
 }
 
 
@@ -128,29 +117,29 @@ static UIAlertView *timeLeftAV;
   NSString *user = @"Ge0rges13";
 
   if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"tweetbot:"]])
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"tweetbot:///user_profile/" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"tweetbot:///user_profile/" stringByAppendingString:user]]];
   else if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"twitterrific:"]])
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"twitterrific:///profile?screen_name=" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"twitterrific:///profile?screen_name=" stringByAppendingString:user]]];
   else if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"tweetings:"]])
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"tweetings:///user?screen_name=" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"tweetings:///user?screen_name=" stringByAppendingString:user]]];
   else if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"twitter:"]])
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"twitter://user?screen_name=" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"twitter://user?screen_name=" stringByAppendingString:user]]];
   else
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"https://mobile.twitter.com/" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"https://mobile.twitter.com/" stringByAppendingString:user]]];
 }
 
 - (void)openDesignerTwitter {
   NSString *user = @"A_RTX";
   if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"tweetbot:"]])
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"tweetbot:///user_profile/" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"tweetbot:///user_profile/" stringByAppendingString:user]]];
   else if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"twitterrific:"]])
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"twitterrific:///profile?screen_name=" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"twitterrific:///profile?screen_name=" stringByAppendingString:user]]];
   else if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"tweetings:"]])
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"tweetings:///user?screen_name=" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"tweetings:///user?screen_name=" stringByAppendingString:user]]];
   else if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"twitter:"]])
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"twitter://user?screen_name=" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"twitter://user?screen_name=" stringByAppendingString:user]]];
   else
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"https://mobile.twitter.com/" stringByAppendingString:user]]];
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[@"https://mobile.twitter.com/" stringByAppendingString:user]]];
 }
 
 - (void)sendEmail {
@@ -230,7 +219,6 @@ static UIAlertView *timeLeftAV;
 - (void)layoutSubviews {
   [super layoutSubviews];
 
-// THIS CRASHES SHIT
   // Numbers only keyboard.
   ((UITextField *)[self textField]).keyboardType = UIKeyboardTypeNumberPad;
 
@@ -239,27 +227,19 @@ static UIAlertView *timeLeftAV;
   [tap setCancelsTouchesInView:NO];
 
   [(UIView *)self.superview.superview addGestureRecognizer:tap];
-  
+
   [tap release];
 
-  //set the keyboard text to the password if there is one
-  KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:uniqueDomainString accessGroup:nil];
-  NSString *password = [keychainItem objectForKey:(id)kSecValueData];
-
-  if (password.length > 0) {
-    ((UITextField *)[self textField]).text = password;
+  // Set the keyboard text to the password if there is one
+  if (passcode.length > 0) {
+    ((UITextField *)[self textField]).text = passcode;
   }
-
-  [keychainItem release];
 }
 
 - (void)textFieldDidEndEditing:(UITextField *)textField {
-  //save the text to the keychain
-  KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:uniqueDomainString accessGroup:nil];
-
-  [keychainItem setObject:textField.text forKey:(id)kSecValueData];
-
-  [keychainItem release];
+  // Save the text to the keychain
+  passcode = textField.text;
+  [[NSUserDefaults standardUserDefaults] setObject:passcode forKey:@"password" inDomain:uniqueDomainString];
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField {

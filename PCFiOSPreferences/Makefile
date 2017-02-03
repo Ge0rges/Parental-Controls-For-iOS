@@ -1,7 +1,7 @@
 include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = PCFiOSPreferences
-PCFiOSPreferences_FILES = PCFiOSPreferences.mm KeychainItemWrapper.m
+PCFiOSPreferences_FILES = PCFiOSPreferences.mm
 PCFiOSPreferences_INSTALL_PATH = /Library/PreferenceBundles
 PCFiOSPreferences_FRAMEWORKS = UIKit Security
 PCFiOSPreferences_PRIVATE_FRAMEWORKS = Preferences

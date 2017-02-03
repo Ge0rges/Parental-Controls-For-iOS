@@ -5,9 +5,6 @@
 #import <SpringBoard/Springboard.h>
 #import <GraphicsServices/GraphicsServices.h>
 
-// CLASSES
-#import "KeychainItemWrapper.h"
-
 // DEFINITIONS
 #define uniqueDomainString @"com.ge0rges.pcfios"
 #define uniqueNotificationString @"com.ge0rges.pcfios.preferences.changed"
@@ -50,11 +47,7 @@ static SBIconLocation appLocation = SBIconLocationHomeScreen;// Current app laun
 // Preferences
 static void getLatestPreferences() {// Fetches the last saved state of the user set preferences: passcode and enabled.
   // Get the passcode of the KeychainItem (security).
-  KeychainItemWrapper *keychainItem = [[KeychainItemWrapper alloc] initWithIdentifier:uniqueDomainString accessGroup:nil];
-
-  passcode = [keychainItem objectForKey:(id)kSecValueData];
-  [passcode retain];
-  [keychainItem release];
+  passcode = [[NSUserDefaults standardUserDefaults] objectForKey:@"password" inDomain:uniqueDomainString];
 
   // Get the enabled state out of the UserDefaults.
   enabled = [[[NSUserDefaults standardUserDefaults] objectForKey:@"enabled" inDomain:uniqueDomainString] boolValue];

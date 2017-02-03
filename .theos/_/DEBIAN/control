@@ -1,0 +1,10 @@
+Package: com.ge0rges.pcfios
+Name: Parental Controls For iOS
+Depends: mobilesubstrate, preferenceloader, firmware (>=10.0)
+Architecture: iphoneos-arm
+Description: Parental Controls For iOS bring the much loved by parents ‘Time Limit’ functionality from the Parental Controls on the mac to your iDevice. You can set different amounts of time for the weekdays and weekends. The preferences are password protected as well is Cydia so your child can’t remove or disable the tweak without your permission.
+Maintainer: Ge0rges
+Author: Ge0rges <ge0rges@ge0rges.com>
+Section: Tweaks
+Version: 1.0.0-18+debug
+Installed-Size: 1940

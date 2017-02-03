@@ -79,22 +79,6 @@
 			<string>PSGroupCell</string>
 		</dict>
 		<dict>
-			<key>min</key>
-			<real>0.5</real>
-			<key>max</key>
-			<real>24</real>
-			<key>cell</key>
-			<string>PSSliderCell</string>
-			<key>showValue</key>
-			<true/>
-			<key>defaults</key>
-			<string>com.ge0rges.pcfios</string>
-			<key>key</key>
-			<string>hoursWeekends</string>
-			<key>cellClass</key>
-			<string>GKSliderCell</string>
-		</dict>
-		<dict>
 			<key>label</key>
 			<string>Contact Me</string>
 			<key>cell</key>
