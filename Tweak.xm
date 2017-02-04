@@ -181,7 +181,7 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
     }
 
     // Change 1.0 to 500 in production
-    timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
+    timer = [NSTimer scheduledTimerWithTimeInterval:300.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
     [timer retain];
   }
 }

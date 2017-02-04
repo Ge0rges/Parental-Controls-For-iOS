@@ -94,9 +94,15 @@ static UIAlertView *timeLeftAV;
   } else {
     // Show the time left alert view, start by gettingt he time left string
     int totalSeconds = [[[NSUserDefaults standardUserDefaults] objectForKey:@"savedTimeLeft" inDomain:uniqueDomainString] intValue];
-    int seconds = totalSeconds % 60;
-    int minutes = (totalSeconds/60) % 60;
-    int hours = totalSeconds/3600;
+    int seconds = 0;
+    int minutes = 0;
+    int hours = 0;
+
+    if (totalSeconds > 0) {
+      seconds = totalSeconds % 60;
+      minutes = (totalSeconds / 60) % 60;
+      hours = totalSeconds / 3600;
+    }
 
     NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
 
@@ -159,9 +165,15 @@ static UIAlertView *timeLeftAV;
 
 - (void)updateAV {
   int totalSeconds = [[[NSUserDefaults standardUserDefaults] objectForKey:@"savedTimeLeft" inDomain:uniqueDomainString] intValue];
-  int seconds = totalSeconds % 60;
-  int minutes = (totalSeconds / 60) % 60;
-  int hours = totalSeconds / 3600;
+  int seconds = 0;
+  int minutes = 0;
+  int hours = 0;
+
+  if (totalSeconds > 0) {
+    seconds = totalSeconds % 60;
+    minutes = (totalSeconds / 60) % 60;
+    hours = totalSeconds / 3600;
+  }
 
   NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
 
