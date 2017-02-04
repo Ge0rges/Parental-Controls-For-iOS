@@ -97,7 +97,11 @@ static BOOL applicationIconWithLocationShouldLaunch(SBApplicationIcon *icon, SBI
   appIcon = icon;
   appLocation = location;
 
-  // TO DO: Check against a blacklist.
+  // TO DO: Check against a whitelist.
+  NSArray *alwaysAllowApps = @[@"com.apple.preferences"];
+  if ([alwaysAllowApps containsObject:[icon applicationBundleID].lowercaseString]) {
+    return YES;
+  }
 
   // Check if time left: savedTimeLeft
   if (savedTimeLeft && enabled) {
@@ -133,7 +137,7 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
   NSString *lockState = (NSString*)name;
   getLatestPreferences();
 
-  if ([lockState isEqualToString:@"com.apple.springboard.lockcomplete"] && enabled && timer) {// Device locked. Stop timers.
+  if ([lockState.lowercaseString isEqualToString:@"com.apple.springboard.lockcomplete"] && enabled && timer) {// Device locked. Stop timers.
     [timer invalidate];
     timer = nil;
     [timer release];
@@ -251,7 +255,7 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
   UIWindow *topWindow = [[NSClassFromString(@"SBUIController") sharedInstance] window];
 
   // Check that this isn't an unauthorized Cydia launch
-  if ([[self applicationBundleID] isEqualToString:@"com.saurik.Cydia"] && passcode.length > 0 && enabled) {
+  if ([[self applicationBundleID].lowercaseString isEqualToString:@"com.saurik.cydia"] && passcode.length > 0 && enabled) {
     UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Please Enter your Parent-Pass to authenticate this action" message:nil preferredStyle:UIAlertControllerStyleAlert];
 
     // Add textField

@@ -68,20 +68,14 @@ static int timeLeft;
 }
 
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
-  if (buttonIndex == alertView.cancelButtonIndex) {// If user canceled the action
-    if (alertView.tag == 4) NSAssert(alertView.tag != 4, @"Closing settings");// We should close settings
-
-    // Warn user that settings will close
-    UIAlertView *av = [[UIAlertView alloc] initWithTitle:@"Closing setting" message:nil delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
-    av.tag = 4;
-
-    [av show];
-
+  if (buttonIndex == alertView.cancelButtonIndex) {// If user canceled the action, close settings.
     if (alertView == timeLeftAV) {
       [timeLeftAVTimer invalidate];
       timeLeftAVTimer = nil;
       [timeLeftAVTimer release];
     }
+
+    NSAssert(NO, @"Closing settings");
 
   } else if (buttonIndex == 1){// User pressed authenticate button
     if ([[alertView textFieldAtIndex:0].text isEqualToString:passcode]) {// Check the passcode
