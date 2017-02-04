@@ -68,12 +68,17 @@ static void getLatestPreferences() {// Fetches the last saved state of the user 
   if (!savedTimeLeftNumber) {
     [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:0.0] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
     [[NSUserDefaults standardUserDefaults] synchronize];// Make sure all changes are synced
+
+    savedTimeLeft = 0;
   }
 
-  savedTimeLeft = 0;
+  savedTimeLeft = [savedTimeLeftNumber floatValue];
 }
 
 static NSNumber* timeLimitForDate (NSDate *date) {
+  // Synchronize settings
+[[NSUserDefaults standardUserDefaults] synchronize];
+
   // Get the last launch date, and check if today is a new day: "lastLaunchDate"
   NSCalendar *calender = [NSCalendar currentCalendar];
   unsigned unitFlags = NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit;
@@ -103,15 +108,15 @@ static BOOL applicationIconWithLocationShouldLaunch(SBApplicationIcon *icon, SBI
 }
 
 static void decrementTimeSaved() {// Decrements the "savedTimeLeft" and goes through a series of checks
- savedTimeLeft -= 1.0;
+ savedTimeLeft -= 300.0;// This gets pinged every 5 minutes
  if (savedTimeLeft < 0 && enabled && timer) {
    [timer invalidate];
    timer = nil;
    [timer release];
-
-   [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
-   [[NSUserDefaults standardUserDefaults] synchronize];
  }
+
+ [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
+ [[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 @implementation PCFiOS
@@ -140,14 +145,17 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
       [timer release];
     }
 
-    // Change 1.0 to 500 in production
-    timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
+    // Ping every 5 minutes.
+    timer = [NSTimer scheduledTimerWithTimeInterval:300.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
     [timer retain];
   }
 }
 
 
 static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+  // Sync NSUserDefaults changes
+  [[NSUserDefaults standardUserDefaults] synchronize];
+
   // Adjust time limit for new settings, by adding the difference the last time limit, and the new one to the saved time left.
   NSNumber *timeLimitForToday = timeLimitForDate([NSDate date]);
 
@@ -158,10 +166,24 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
   savedTimeLeft = savedTimeLeft + (newTimeLimitForToday - oldTimeLimitForToday);
   [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
   [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"timeLimitToday" inDomain:uniqueDomainString];
+  [[NSUserDefaults standardUserDefaults] synchronize];
 
   getLatestPreferences();// Update all other prefs.
 
-  timersShouldRun = enabled;
+  // Reset timer
+  if (savedTimeLeft > 0 && enabled) {
+    timersShouldRun = YES;
+
+    if (timer) {
+      [timer invalidate];
+      timer = nil;
+      [timer release];
+    }
+
+    // Change 1.0 to 500 in production
+    timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
+    [timer retain];
+  }
 }
 
 %ctor {// Called when loading the binary.
@@ -175,6 +197,10 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
   // The current date will be needed in both scopes.
   NSDate *todayDate = [NSDate date];
 
+  // Set the timit limit for today before all else.
+  NSNumber *timeLimitForToday = timeLimitForDate(todayDate);
+  [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"timeLimitToday" inDomain:uniqueDomainString];
+
   if (enabled) {// Check if the tweak should run.
     // Get the last launch date, and check if today is a new day: "lastLaunchDate"
     NSDate *lastLaunchDate = [[NSUserDefaults standardUserDefaults] objectForKey:@"lastLaunchDate" inDomain:uniqueDomainString];
@@ -187,8 +213,6 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 
     if (([compOne day] == [compTwo day] && [compOne month] == [compTwo month] && [compOne year] == [compTwo year]) || !lastLaunchDate) {
       //If new day reset: "savedTimeLeft" to either "hoursWeekdays" or "hoursWeekends" based on current day, then start timer.
-      NSNumber *timeLimitForToday = timeLimitForDate(todayDate);
-      [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"timeLimitToday" inDomain:uniqueDomainString];
       [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
       savedTimeLeft = [timeLimitForToday floatValue];
 
@@ -207,11 +231,11 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
   [[NSUserDefaults standardUserDefaults] setObject:todayDate forKey:@"lastLaunchDate" inDomain:uniqueDomainString];
 
   // Register for tweak preference changes notifications (must do this even if tweak is disabled, in case it gets enabled).
-  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, tweakSettingsChanged, (CFStringRef)uniqueNotificationString, NULL, CFNotificationSuspensionBehaviorCoalesce);
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, tweakSettingsChanged, (CFStringRef)uniqueNotificationString, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
   // Register for lock state changes
-  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (CFStringRef)@"com.apple.springboard.lockstate", NULL, CFNotificationSuspensionBehaviorCoalesce);
-  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (CFStringRef)@"com.apple.springboard.lockcomplete", NULL, CFNotificationSuspensionBehaviorCoalesce);
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (CFStringRef)@"com.apple.springboard.lockstate", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (CFStringRef)@"com.apple.springboard.lockcomplete", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 }
 
 %dtor {// Called when tweak gets unloaded.
@@ -233,7 +257,7 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
     // Add textField
     [alertController addTextFieldWithConfigurationHandler:^(UITextField *textfield) {
       textfield.secureTextEntry = YES;
-      textfield.keyboardType = UIAlertViewStyleSecureTextInput;
+      textfield.keyboardType = UIKeyboardTypeNumberPad;
     }];
 
     [alertController addAction:[UIAlertAction actionWithTitle:@"Authenticate" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
@@ -259,9 +283,15 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 
   } else {// Time's up!
     // Show a alert view.
-    int seconds = (int)savedTimeLeft % 60;
-    int minutes = ((int)savedTimeLeft / 60) % 60;
-    int hours = (int)savedTimeLeft / 3600;
+    int seconds = 0;
+    int minutes = 0;
+    int hours = 0;
+
+    if (savedTimeLeft > 0) {
+      seconds = (int)savedTimeLeft % 60;
+      minutes = ((int)savedTimeLeft / 60) % 60;
+      hours = (int)savedTimeLeft / 3600;
+    }
 
     NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
 

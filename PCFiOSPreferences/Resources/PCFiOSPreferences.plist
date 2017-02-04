@@ -47,6 +47,8 @@
 			<string>Enter your Parent-Pass here</string>
 			<key>cellClass</key>
 			<string>GKSecureEditTextCell</string>
+			<key>PostNotification</key>
+			<string>com.ge0rges.pcfios.preferences.changed</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -71,6 +73,8 @@
 			<string>hoursWeekdays</string>
 			<key>cellClass</key>
 			<string>GKSliderCell</string>
+			<key>PostNotification</key>
+			<string>com.ge0rges.pcfios.preferences.changed</string>
 		</dict>
 		<dict>
 			<key>footerText</key>
@@ -93,6 +97,8 @@
 			<string>hoursWeekends</string>
 			<key>cellClass</key>
 			<string>GKSliderCell</string>
+			<key>PostNotification</key>
+			<string>com.ge0rges.pcfios.preferences.changed</string>
 		</dict>
 		<dict>
 			<key>label</key>

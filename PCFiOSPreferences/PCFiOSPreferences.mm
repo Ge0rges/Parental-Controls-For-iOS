@@ -28,6 +28,12 @@ static UIAlertView *timeLeftAV;
 @interface GKSecureEditTextCell : PSEditableTableCell
 @end
 
+@interface GKSliderCell : PSSliderTableCell {
+  BOOL tagSet;
+}
+
+@end
+
 @implementation ParentalControlsForiOSListController
 // Preferences
 - (void)getLatestPreferences {// Fetches the last saved state of the user set preferences: passcode and enabled.
@@ -40,31 +46,23 @@ static UIAlertView *timeLeftAV;
 
 
 - (NSArray *)specifiers {// Called when preferences load.
-  HBLogDebug(@"settings specifiers loading");
   if (!_specifiers) {
     _specifiers = [[self loadSpecifiersFromPlistName:@"PCFiOSPreferences" target:self] retain];
-    HBLogDebug(@"settings specifiers loaded");
   }
 
   // Show alertView asking for passcode only if it isn't the first time the user enters the prefs
-  // Get the passcode
   [self getLatestPreferences];
 
-  HBLogDebug(@"settings got latest prefs, checking if first time");
   if (passcode.length > 0 && enabled) {
     // Configure the passcodeAV
-    HBLogDebug(@"settings passcode AV setting up to show");
     passcodeAV = [[UIAlertView alloc] initWithTitle:@"Please Enter your Parent-Pass to access the Parental Controls" message:nil delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Authenticate", @"Time Left", nil];
 
     passcodeAV.alertViewStyle = UIAlertViewStyleSecureTextInput;
     [passcodeAV textFieldAtIndex:0].keyboardType = UIKeyboardTypeNumberPad;
 
-    HBLogDebug(@"settings showing passcode AV");
     [passcodeAV show];
-
   }
 
-  HBLogDebug(@"settings returned specifiers");
   return _specifiers;
 }
 
@@ -72,7 +70,7 @@ static UIAlertView *timeLeftAV;
   if (buttonIndex == alertView.cancelButtonIndex) {// If user canceled the action
     if (alertView.tag == 4) NSAssert(alertView.tag != 4, @"Closing settings");// We should close settings
 
-    //warn user that settings will close
+    // Warn user that settings will close
     UIAlertView *av = [[UIAlertView alloc] initWithTitle:@"Closing setting" message:nil delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
     av.tag = 4;
 
@@ -84,17 +82,17 @@ static UIAlertView *timeLeftAV;
       [timeLeftAVTimer release];
     }
 
-  } else if (buttonIndex == 1){//user pressed authenticate button
-    if ([[alertView textFieldAtIndex:0].text isEqualToString:passcode]) {//check the passcode
-      //dismiss the alertView
+  } else if (buttonIndex == 1){// User pressed authenticate button
+    if ([[alertView textFieldAtIndex:0].text isEqualToString:passcode]) {// Check the passcode
+      // Dismiss the alertView
       [alertView dismissWithClickedButtonIndex:buttonIndex animated:YES];
 
-    } else {//incorrect passcode
-      //dismiss and reshow the alertView with an empty textfield
+    } else {// Incorrect passcode
+      // Dismiss and reshow the alertView with an empty textfield
       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{[passcodeAV show];});
     }
   } else {
-    //show the time left alert view, start by gettingt he time left string
+    // Show the time left alert view, start by gettingt he time left string
     int totalSeconds = [[[NSUserDefaults standardUserDefaults] objectForKey:@"savedTimeLeft" inDomain:uniqueDomainString] intValue];
     int seconds = totalSeconds % 60;
     int minutes = (totalSeconds/60) % 60;
@@ -102,13 +100,13 @@ static UIAlertView *timeLeftAV;
 
     NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
 
-    //create the AV
+    // Create the AV
     timeLeftAV = [[UIAlertView alloc] initWithTitle:@"Time Left for today" message:messageString delegate:self cancelButtonTitle:@"Dismiss" otherButtonTitles:nil, nil];
 
-    //set the timer to update the displayed timeleft
+    // Set the timer to update the displayed timeleft
     timeLeftAVTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(updateAV) userInfo:nil repeats:YES];
 
-    //show the av
+    // Show the av
     [timeLeftAV show];
   }
 }
@@ -172,28 +170,37 @@ static UIAlertView *timeLeftAV;
 
 @end
 
-@interface GKSliderCell : PSSliderTableCell {
-  BOOL tagSet;
-}
-
-@end
-
 @implementation GKSliderCell
 
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)identifier specifier:(PSSpecifier *)spec {
   self = [super initWithStyle:style reuseIdentifier:identifier specifier:spec];
+  UISlider *slider = (UISlider *)[self control];
 
   if (self) {
     //set the sliders track color to purple
-    [(UISlider *)[self control] setMinimumTrackTintColor:[UIColor purpleColor]];
-    [(UISlider *)[self control] addTarget:self action:@selector(roundSlider:) forControlEvents:UIControlEventValueChanged];
+    [slider setMinimumTrackTintColor:[UIColor purpleColor]];
+    [slider addTarget:self action:@selector(roundSlider:) forControlEvents:UIControlEventValueChanged];
 
-    //set tags to identify the weekday and weekend sliders
+    // Set tags to identify the weekday and weekend sliders
+    // Custom slider value logic (since it shows hours and we store seconds)
     if (!tagSet) {
       [(UISlider *)[self control] setTag:1];
       tagSet = YES;
+
+      NSNumber *sliderValueWeekends = [[NSUserDefaults standardUserDefaults] objectForKey:@"hoursWeekends" inDomain:uniqueDomainString];
+      [slider setValue:([sliderValueWeekends floatValue]/3600) animated:YES];
+
+      [sliderValueWeekends release];
+
+    } else {
+      NSNumber *sliderValueWeekdays = [[NSUserDefaults standardUserDefaults] objectForKey:@"hoursWeekdays" inDomain:uniqueDomainString];
+      [slider setValue:([sliderValueWeekdays floatValue]/3600) animated:YES];
+
+      [sliderValueWeekdays release];
     }
   }
+
+  [slider release];
 
   return self;
 }
@@ -207,6 +214,7 @@ static UIAlertView *timeLeftAV;
   if (slider.tag == 1) {// Check which slider it is
     // Weekday slider
     [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:(sliderValue*3600)] forKey:@"hoursWeekdays" inDomain:uniqueDomainString];
+
   } else {
     // Weekend slider
     [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:(sliderValue*3600)] forKey:@"hoursWeekends" inDomain:uniqueDomainString];
