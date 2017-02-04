@@ -103,7 +103,7 @@ static BOOL applicationIconWithLocationShouldLaunch(SBApplicationIcon *icon, SBI
     return YES;
   }
 
-  // Check if time left: savedTimeLeft
+  // Check if time left
   if (savedTimeLeft && enabled) {
     return (savedTimeLeft > 0);
   }
@@ -117,6 +117,8 @@ static void decrementTimeSaved() {// Decrements the "savedTimeLeft" and goes thr
    [timer invalidate];
    timer = nil;
    [timer release];
+
+   timersShouldRun = NO;
  }
 
  [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
@@ -215,7 +217,7 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
     NSDateComponents *compOne = [calender components:unitFlags fromDate:lastLaunchDate];
     NSDateComponents *compTwo = [calender components:unitFlags fromDate:todayDate];
 
-    if (([compOne day] == [compTwo day] && [compOne month] == [compTwo month] && [compOne year] == [compTwo year]) || !lastLaunchDate) {
+    if (([compOne day] != [compTwo day] && [compOne month] == [compTwo month] && [compOne year] == [compTwo year]) || !lastLaunchDate) {
       //If new day reset: "savedTimeLeft" to either "hoursWeekdays" or "hoursWeekends" based on current day, then start timer.
       [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
       savedTimeLeft = [timeLimitForToday floatValue];
