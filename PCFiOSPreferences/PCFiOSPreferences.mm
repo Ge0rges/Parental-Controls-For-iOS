@@ -16,6 +16,7 @@ static BOOL enabled;
 static NSTimer *timeLeftAVTimer;
 static UIAlertView *passcodeAV;
 static UIAlertView *timeLeftAV;
+static int timeLeft;
 
 @interface NSUserDefaults (UFS_Category)
 - (id)objectForKey:(NSString *)key inDomain:(NSString *)domain;
@@ -93,21 +94,21 @@ static UIAlertView *timeLeftAV;
     }
   } else {
     // Show the time left alert view, start by gettingt he time left string
-    int totalSeconds = [[[NSUserDefaults standardUserDefaults] objectForKey:@"savedTimeLeft" inDomain:uniqueDomainString] intValue];
+    timeLeft = [[[NSUserDefaults standardUserDefaults] objectForKey:@"savedTimeLeft" inDomain:uniqueDomainString] intValue];
     int seconds = 0;
     int minutes = 0;
     int hours = 0;
 
-    if (totalSeconds > 0) {
-      seconds = totalSeconds % 60;
-      minutes = (totalSeconds / 60) % 60;
-      hours = totalSeconds / 3600;
+    if (timeLeft > 0) {
+      seconds = timeLeft % 60;
+      minutes = (timeLeft / 60) % 60;
+      hours = timeLeft / 3600;
     }
 
     NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
 
     // Create the AV
-    timeLeftAV = [[UIAlertView alloc] initWithTitle:@"Time Left for today" message:messageString delegate:self cancelButtonTitle:@"Dismiss" otherButtonTitles:nil, nil];
+    timeLeftAV = [[UIAlertView alloc] initWithTitle:@"Time left for today" message:messageString delegate:self cancelButtonTitle:@"Dismiss" otherButtonTitles:nil, nil];
 
     // Set the timer to update the displayed timeleft
     timeLeftAVTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(updateAV) userInfo:nil repeats:YES];
@@ -164,15 +165,15 @@ static UIAlertView *timeLeftAV;
 }
 
 - (void)updateAV {
-  int totalSeconds = [[[NSUserDefaults standardUserDefaults] objectForKey:@"savedTimeLeft" inDomain:uniqueDomainString] intValue];
+  timeLeft -= 1;
   int seconds = 0;
   int minutes = 0;
   int hours = 0;
 
-  if (totalSeconds > 0) {
-    seconds = totalSeconds % 60;
-    minutes = (totalSeconds / 60) % 60;
-    hours = totalSeconds / 3600;
+  if (timeLeft > 0) {
+    seconds = timeLeft % 60;
+    minutes = (timeLeft / 60) % 60;
+    hours = timeLeft / 3600;
   }
 
   NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
