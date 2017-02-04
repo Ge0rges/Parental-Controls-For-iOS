@@ -206,10 +206,10 @@ static UIAlertView *timeLeftAV;
   //write this value to the plist
   if (slider.tag == 1) {// Check which slider it is
     // Weekday slider
-    [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:sliderValue] forKey:@"hoursWeekdays" inDomain:uniqueDomainString];
+    [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:(sliderValue*3600)] forKey:@"hoursWeekdays" inDomain:uniqueDomainString];
   } else {
     // Weekend slider
-    [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:sliderValue] forKey:@"hoursWeekends" inDomain:uniqueDomainString];
+    [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:(sliderValue*3600)] forKey:@"hoursWeekends" inDomain:uniqueDomainString];
   }
 }
 

@@ -45,9 +45,11 @@ static BOOL timersShouldRun = YES;
 static SBApplicationIcon *appIcon = nil;// Current ApplicationIcon (used to resume launch).
 static SBIconLocation appLocation = SBIconLocationHomeScreen;// Current app launch location (used to resume launch).
 
-static NSTimer *timer;
+static NSTimer *timer;// The main timer
 
-static float savedTimeLeft;
+static float savedTimeLeft;// Time left VARIABLES
+
+static PCFiOS *pcfios;// Variable to hold our class in
 
 /* IMPLEMENTATIONS AND FUNCTIONS*/
 
@@ -69,6 +71,20 @@ static void getLatestPreferences() {// Fetches the last saved state of the user 
   }
 
   savedTimeLeft = 0;
+}
+
+static NSNumber* timeLimitForDate (NSDate *date) {
+  // Get the last launch date, and check if today is a new day: "lastLaunchDate"
+  NSCalendar *calender = [NSCalendar currentCalendar];
+  unsigned unitFlags = NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit;
+
+  NSDateComponents *compDate = [calender components:unitFlags fromDate:date];
+
+  //If new day reset: "savedTimeLeft" to either "hoursWeekdays" or "hoursWeekends" based on current day, then start timer.
+  NSString *hoursKey = ([compDate weekday] == 1 || [compDate weekday] == 7) ? @"hoursWeekends" : @"hoursWeekdays";
+  NSNumber *oneDayTime = [[NSUserDefaults standardUserDefaults] objectForKey:hoursKey inDomain:uniqueDomainString];
+
+  return oneDayTime;
 }
 
 static BOOL applicationIconWithLocationShouldLaunch(SBApplicationIcon *icon, SBIconLocation location) {
@@ -125,18 +141,36 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
     }
 
     // Change 1.0 to 500 in production
-    timer = [[NSTimer scheduledTimerWithTimeInterval:1.0 target:[PCFiOS new] selector:@selector(decrementTimeSaved:) userInfo:nil repeats:NO] retain];
+    timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
+    [timer retain];
   }
 }
 
 
 static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
-  getLatestPreferences();
+  // Adjust time limit for new settings, by adding the difference the last time limit, and the new one to the saved time left.
+  NSNumber *timeLimitForToday = timeLimitForDate([NSDate date]);
+
+  float newTimeLimitForToday = [timeLimitForToday floatValue];
+  float oldTimeLimitForToday = [[[NSUserDefaults standardUserDefaults] objectForKey:@"timeLimitToday" inDomain:uniqueDomainString] floatValue];
+
+  // Update the time left & timeLimitToday.
+  savedTimeLeft = savedTimeLeft + (newTimeLimitForToday - oldTimeLimitForToday);
+  [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
+  [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"timeLimitToday" inDomain:uniqueDomainString];
+
+  getLatestPreferences();// Update all other prefs.
+
+  timersShouldRun = enabled;
 }
 
 %ctor {// Called when loading the binary.
   // Fetch the latest preferences.
   getLatestPreferences();
+
+  // Init our class once and for all.
+  pcfios = [PCFiOS new];
+  [pcfios retain];
 
   // The current date will be needed in both scopes.
   NSDate *todayDate = [NSDate date];
@@ -153,10 +187,10 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 
     if (([compOne day] == [compTwo day] && [compOne month] == [compTwo month] && [compOne year] == [compTwo year]) || !lastLaunchDate) {
       //If new day reset: "savedTimeLeft" to either "hoursWeekdays" or "hoursWeekends" based on current day, then start timer.
-      NSString *hoursKey = ([compTwo weekday] == 1 || [compTwo weekday] == 7) ? @"hoursWeekends" : @"hoursWeekdays";
-      NSNumber *oneDayTime = [[NSUserDefaults standardUserDefaults] objectForKey:hoursKey inDomain:uniqueDomainString];
-      [[NSUserDefaults standardUserDefaults] setObject:oneDayTime forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
-      savedTimeLeft = [oneDayTime floatValue];
+      NSNumber *timeLimitForToday = timeLimitForDate(todayDate);
+      [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"timeLimitToday" inDomain:uniqueDomainString];
+      [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
+      savedTimeLeft = [timeLimitForToday floatValue];
 
       // Mark the timer to start.
       timersShouldRun = YES;
@@ -180,13 +214,20 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (CFStringRef)@"com.apple.springboard.lockcomplete", NULL, CFNotificationSuspensionBehaviorCoalesce);
 }
 
+%dtor {// Called when tweak gets unloaded.
+  // Save the time left before the tweak gets unloaded.
+  [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
+  [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
 %hook SBApplicationIcon
 
 - (void)launchFromLocation:(SBIconLocation)location context:(id)context {// Called when user tries to launch an app. (iOS 9-10)
+  // Get the top window to be used later
+  UIWindow *topWindow = [[NSClassFromString(@"SBUIController") sharedInstance] window];
+
   // Check that this isn't an unauthorized Cydia launch
   if ([[self applicationBundleID] isEqualToString:@"com.saurik.Cydia"] && passcode.length > 0 && enabled) {
-    UIWindow *topWindow = [[NSClassFromString(@"SBUIController") sharedInstance] window];
-
     UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Please Enter your Parent-Pass to authenticate this action" message:nil preferredStyle:UIAlertControllerStyleAlert];
 
     // Add textField
@@ -215,6 +256,18 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 
   } else if (applicationIconWithLocationShouldLaunch(self, location)) {// Check wether the time has run out.
     %orig();
+
+  } else {// Time's up!
+    // Show a alert view.
+    int seconds = (int)savedTimeLeft % 60;
+    int minutes = ((int)savedTimeLeft / 60) % 60;
+    int hours = (int)savedTimeLeft / 3600;
+
+    NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
+
+    UIAlertController *timesUpAC = [UIAlertController alertControllerWithTitle:@"Times Up!" message:messageString preferredStyle:UIAlertControllerStyleAlert];
+    [timesUpAC addAction:[UIAlertAction actionWithTitle:@"Aww" style:UIAlertActionStyleDestructive handler:nil]];
+    [topWindow.rootViewController presentViewController:timesUpAC animated:YES completion:nil];
   }
 }
 
