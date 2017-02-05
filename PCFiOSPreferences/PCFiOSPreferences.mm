@@ -1,4 +1,4 @@
-// FRAMEWORKS
+/* FRAMEWORKS */
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
 #import <Preferences/PSTextFieldSpecifier.h>
@@ -7,35 +7,42 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-// DEFINITIONS
+/* DEFINITIONS */
 #define uniqueDomainString @"com.ge0rges.pcfios"
 
-/* GLOBAL VARIABLES */
-static NSString *passcode;
-static BOOL enabled;
-static NSTimer *timeLeftAVTimer;
-static UIAlertView *passcodeAV;
-static UIAlertView *timeLeftAV;
-static int timeLeft;
-
+/* FORWARD DECLARATIONS */
 @interface NSUserDefaults (UFS_Category)
 - (id)objectForKey:(NSString *)key inDomain:(NSString *)domain;
 - (void)setObject:(id)value forKey:(NSString *)key inDomain:(NSString *)domain;
 @end
 
-@interface ParentalControlsForiOSListController: PSListController <UIAlertViewDelegate>
+@interface PCFiOSListController: PSListController <UIAlertViewDelegate>
 @end
 
-@interface GKSecureEditTextCell : PSEditableTableCell
+@interface PCFiOSSecureEditTextCell : PSEditableTableCell
 @end
 
-@interface GKSliderCell : PSSliderTableCell {
+@interface PCFiOSSliderCell : PSSliderTableCell {
   BOOL tagSet;
 }
 
 @end
 
-@implementation ParentalControlsForiOSListController
+/* GLOBAL VARIABLES */
+static NSString *passcode;
+static NSTimer *timeLeftAVTimer;// Used to update the time left alert view.
+
+static BOOL enabled;
+
+static UIAlertView *passcodeAV;
+static UIAlertView *timeLeftAV;
+
+static int timeLeft;// Used to show the time left alert view.
+
+static PCFiOSListController *pcfiosListController;// Used to dismiss settings.
+
+/* IMPLEMENTATIONS AND FUNCTIONS*/
+@implementation PCFiOSListController
 // Preferences
 - (void)getLatestPreferences {// Fetches the last saved state of the user set preferences: passcode and enabled.
   // Get the passcode of the KeychainItem (security).
@@ -51,12 +58,15 @@ static int timeLeft;
     _specifiers = [[self loadSpecifiersFromPlistName:@"PCFiOSPreferences" target:self] retain];
   }
 
+  // Set pcfiosListController
+  pcfiosListController = self;
+
   // Show alertView asking for passcode only if it isn't the first time the user enters the prefs
   [self getLatestPreferences];
 
   if (passcode.length > 0 && enabled) {
     // Configure the passcodeAV
-    passcodeAV = [[UIAlertView alloc] initWithTitle:@"Please Enter your Parent-Pass to access the Parental Controls" message:nil delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Authenticate", @"Time Left", nil];
+    passcodeAV = [[UIAlertView alloc] initWithTitle:@"Please Enter your Parent-Pass to access the Parental Controls" message:nil delegate:self cancelButtonTitle:@"Close Settings" otherButtonTitles:@"Authenticate", @"Time Left", nil];
 
     passcodeAV.alertViewStyle = UIAlertViewStyleSecureTextInput;
     [passcodeAV textFieldAtIndex:0].keyboardType = UIKeyboardTypeNumberPad;
@@ -75,7 +85,7 @@ static int timeLeft;
       [timeLeftAVTimer release];
     }
 
-    NSAssert(NO, @"Closing settings");
+    NSAssert(NO, @"Closing Settings");
 
   } else if (buttonIndex == 1){// User pressed authenticate button
     if ([[alertView textFieldAtIndex:0].text isEqualToString:passcode]) {// Check the passcode
@@ -102,7 +112,7 @@ static int timeLeft;
     NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
 
     // Create the AV
-    timeLeftAV = [[UIAlertView alloc] initWithTitle:@"Time left for today" message:messageString delegate:self cancelButtonTitle:@"Dismiss" otherButtonTitles:nil, nil];
+    timeLeftAV = [[UIAlertView alloc] initWithTitle:@"Time left for today" message:messageString delegate:self cancelButtonTitle:@"Close Settings" otherButtonTitles:nil, nil];
 
     // Set the timer to update the displayed timeleft
     timeLeftAVTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(updateAV) userInfo:nil repeats:YES];
@@ -177,7 +187,7 @@ static int timeLeft;
 
 @end
 
-@implementation GKSliderCell
+@implementation PCFiOSSliderCell
 
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)identifier specifier:(PSSpecifier *)spec {
   self = [super initWithStyle:style reuseIdentifier:identifier specifier:spec];
@@ -230,7 +240,7 @@ static int timeLeft;
 
 @end
 
-@implementation GKSecureEditTextCell
+@implementation PCFiOSSecureEditTextCell
 - (void)layoutSubviews {
   [super layoutSubviews];
 

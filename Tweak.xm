@@ -1,11 +1,11 @@
-// FRAMEWORKS
+/* FRAMEWORKS */
 #import <CoreFoundation/CFNotificationCenter.h>
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <SpringBoard/Springboard.h>
 #import <GraphicsServices/GraphicsServices.h>
 
-// DEFINITIONS
+/* DEFINITIONS */
 #define uniqueDomainString @"com.ge0rges.pcfios"
 #define uniqueNotificationString @"com.ge0rges.pcfios.preferences.changed"
 
@@ -41,6 +41,7 @@ static NSString *passcode = @"";// Contains the user set passcode. Use -getLates
 
 static BOOL enabled;// Contains the user set BOOL that determines wether or not the tweak should run. Use -getLatestPreferences to fetch.
 static BOOL timersShouldRun = YES;
+static BOOL recentlyLocked = NO;// used to keep track of the lockstate notifications.
 
 static SBApplicationIcon *appIcon = nil;// Current ApplicationIcon (used to resume launch).
 static SBIconLocation appLocation = SBIconLocationHomeScreen;// Current app launch location (used to resume launch).
@@ -135,22 +136,26 @@ static void decrementTimeSaved() {// Decrements the "savedTimeLeft" and goes thr
 // NOTIFICATIONS
 static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
 
-  //the "com.apple.springboard.lockcomplete" notification will always come after the "com.apple.springboard.lockstate" notification
-  NSString *lockState = (NSString*)name;
+  // "com.apple.springboard.lockcomplete" indicates locked device. "com.apple.springboard.lockstate" indicates lock status changed.
+  // Therefore lockstate is called when devie is locked *and* unlocked.
+  NSString *lockState = (__bridge NSString*)name;
   getLatestPreferences();
 
-  if ([lockState.lowercaseString isEqualToString:@"com.apple.springboard.lockcomplete"] && enabled && timer) {// Device locked. Stop timers.
+  // Check if this the following "lockstate" notification froma  previous locckcomplete. If so, reset our indicator.
+  if (recentlyLocked) {
+    recentlyLocked = NO;
+    return;
+  }
+
+  if ([lockState.lowercaseString isEqualToString:@"com.apple.springboard.lockcomplete"] && timer) {// Device locked. Stop timers.
     [timer invalidate];
     timer = nil;
     [timer release];
 
-  } else if (timersShouldRun && enabled) {// Device Unlocked and we should time it (conservatively).
-    if (timer) {
-      [timer invalidate];
-      timer = nil;
-      [timer release];
-    }
+    // Mark as recently locked for a few miliseconds.
+    recentlyLocked = YES;
 
+  } else if (timersShouldRun && enabled && !timer && !recentlyLocked) {// Device Unlocked and we should time it (conservatively).
     // Ping every 5 minutes.
     timer = [NSTimer scheduledTimerWithTimeInterval:300.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
     [timer retain];
@@ -240,8 +245,8 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, tweakSettingsChanged, (CFStringRef)uniqueNotificationString, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
   // Register for lock state changes
-  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (CFStringRef)@"com.apple.springboard.lockstate", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (CFStringRef)@"com.apple.springboard.lockcomplete", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (__bridge CFStringRef)@"com.apple.springboard.lockstate", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (__bridge CFStringRef)@"com.apple.springboard.lockcomplete", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 }
 
 %dtor {// Called when tweak gets unloaded.

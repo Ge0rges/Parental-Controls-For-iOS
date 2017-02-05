@@ -46,7 +46,7 @@
 			<key>placeholder</key>
 			<string>Enter your Parent-Pass here</string>
 			<key>cellClass</key>
-			<string>GKSecureEditTextCell</string>
+			<string>PCFiOSSecureEditTextCell</string>
 			<key>PostNotification</key>
 			<string>com.ge0rges.pcfios.preferences.changed</string>
 		</dict>
@@ -72,13 +72,13 @@
 			<key>key</key>
 			<string>hoursWeekdays</string>
 			<key>cellClass</key>
-			<string>GKSliderCell</string>
+			<string>PCFiOSSliderCell</string>
 			<key>PostNotification</key>
 			<string>com.ge0rges.pcfios.preferences.changed</string>
 		</dict>
 		<dict>
 			<key>footerText</key>
-			<string>Hours allowed per Weekend day. Time Limit changes will take effect the next day unless tweak is toggled (will reset time).</string>
+			<string>Hours allowed per Weekend day. Effective immediately.</string>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 		</dict>
@@ -96,7 +96,7 @@
 			<key>key</key>
 			<string>hoursWeekends</string>
 			<key>cellClass</key>
-			<string>GKSliderCell</string>
+			<string>PCFiOSSliderCell</string>
 			<key>PostNotification</key>
 			<string>com.ge0rges.pcfios.preferences.changed</string>
 		</dict>
