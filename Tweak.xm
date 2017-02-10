@@ -3,7 +3,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <SpringBoard/Springboard.h>
-#import <GraphicsServices/GraphicsServices.h>
+#import <objc/runtime.h>
 
 /* DEFINITIONS */
 #define uniqueDomainString @"com.ge0rges.pcfios"
@@ -17,7 +17,24 @@
 
 @interface SBUIController
 + (instancetype)sharedInstance;
++ (instancetype)sharedInstanceIfExists;
 - (UIWindow *)window;
+- (void)activateApplication:(SBApplication *)arg1;
+@end
+
+
+@interface SBApplicationController
++ (instancetype)sharedInstance;
++ (instancetype)sharedInstanceIfExists;
+- (id)applicationWithBundleIdentifier:(id)arg1;
+@end
+
+@interface UIAlertController (Window)
+- (void)show;
+- (void)show:(BOOL)animated;
+
+@property (nonatomic, strong) UIWindow *alertWindow;
+
 @end
 
 typedef enum {
@@ -34,17 +51,16 @@ typedef enum {
 
 @interface PCFiOS : NSObject
 - (void)decrementTimeSaved;
+- (void)handleTimesUp;
 @end
 
 /* GLOBAL VARIABLES */
 static NSString *passcode = @"";// Contains the user set passcode. Use -getLatestPreferences to fetch.
 
 static BOOL enabled;// Contains the user set BOOL that determines wether or not the tweak should run. Use -getLatestPreferences to fetch.
-static BOOL timersShouldRun = YES;
 static BOOL recentlyLocked = NO;// used to keep track of the lockstate notifications.
 
-static SBApplicationIcon *appIcon = nil;// Current ApplicationIcon (used to resume launch).
-static SBIconLocation appLocation = SBIconLocationHomeScreen;// Current app launch location (used to resume launch).
+static UIAlertController *timesUpAlertController;// The alert shown when time's up.
 
 static NSTimer *timer;// The main timer
 
@@ -78,7 +94,7 @@ static void getLatestPreferences() {// Fetches the last saved state of the user 
 
 static NSNumber* timeLimitForDate (NSDate *date) {
   // Synchronize settings
-[[NSUserDefaults standardUserDefaults] synchronize];
+  [[NSUserDefaults standardUserDefaults] synchronize];
 
   // Get the last launch date, and check if today is a new day: "lastLaunchDate"
   NSCalendar *calender = [NSCalendar currentCalendar];
@@ -89,51 +105,12 @@ static NSNumber* timeLimitForDate (NSDate *date) {
   //If new day reset: "savedTimeLeft" to either "hoursWeekdays" or "hoursWeekends" based on current day, then start timer.
   NSString *hoursKey = ([compDate weekday] == 1 || [compDate weekday] == 7) ? @"hoursWeekends" : @"hoursWeekdays";
   NSNumber *oneDayTime = [[NSUserDefaults standardUserDefaults] objectForKey:hoursKey inDomain:uniqueDomainString];
+  NSNumber *extraTime = [[NSUserDefaults standardUserDefaults] objectForKey:@"extraTime" inDomain:uniqueDomainString];
 
-  return oneDayTime;
+  return [NSNumber numberWithFloat:([oneDayTime floatValue] + [extraTime floatValue])];
 }
 
-static BOOL applicationIconWithLocationShouldLaunch(SBApplicationIcon *icon, SBIconLocation location) {
-  // INFO: TO LAUNCH THE APP ANYWHERE: 			[appIcon launchFromLocation:appLocation context:nil];
-  appIcon = icon;
-  appLocation = location;
-
-  // TO DO: Check against a whitelist.
-  NSArray *alwaysAllowApps = @[@"com.apple.preferences"];
-  if ([alwaysAllowApps containsObject:[icon applicationBundleID].lowercaseString]) {
-    return YES;
-  }
-
-  // Check if time left
-  if (savedTimeLeft && enabled) {
-    return (savedTimeLeft > 0);
-  }
-
-  return YES;
-}
-
-static void decrementTimeSaved() {// Decrements the "savedTimeLeft" and goes through a series of checks
- savedTimeLeft -= 300.0;// This gets pinged every 5 minutes
- if (savedTimeLeft < 0 && enabled && timer) {
-   [timer invalidate];
-   timer = nil;
-   [timer release];
-
-   timersShouldRun = NO;
- }
-
- [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
- [[NSUserDefaults standardUserDefaults] synchronize];
-}
-
-@implementation PCFiOS
-- (void)decrementTimeSaved {
-  decrementTimeSaved();
-}
-
-@end
-
-// NOTIFICATIONS
+// Notifications
 static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
 
   // "com.apple.springboard.lockcomplete" indicates locked device. "com.apple.springboard.lockstate" indicates lock status changed.
@@ -147,21 +124,29 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
     return;
   }
 
-  if ([lockState.lowercaseString isEqualToString:@"com.apple.springboard.lockcomplete"] && timer) {// Device locked. Stop timers.
-    [timer invalidate];
-    timer = nil;
-    [timer release];
+  if ([lockState.lowercaseString isEqualToString:@"com.apple.springboard.lockcomplete"]) {// Device locked. Stop timers.
+    if (timer) {
+      [timer invalidate];
+      timer = nil;
+      [timer release];
+    }
+    // Hide the parental blocking window
+    if (timesUpAlertController) {
+      [timesUpAlertController dismissViewControllerAnimated:NO  completion:nil];
+    }
 
     // Mark as recently locked for a few miliseconds.
     recentlyLocked = YES;
 
-  } else if (timersShouldRun && enabled && !timer && !recentlyLocked) {// Device Unlocked and we should time it (conservatively).
+  } else if (enabled && !timer && !recentlyLocked && savedTimeLeft > 0) {// Device unlocked with time, start a timer.
     // Ping every 5 minutes.
     timer = [NSTimer scheduledTimerWithTimeInterval:300.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
     [timer retain];
+
+  } else if (enabled && savedTimeLeft <= 0 && !recentlyLocked) {// Device unlocked with no time, handle times up.
+    [pcfios handleTimesUp];
   }
 }
-
 
 static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
   // Sync NSUserDefaults changes
@@ -183,8 +168,6 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 
   // Reset timer
   if (savedTimeLeft > 0 && enabled) {
-    timersShouldRun = YES;
-
     if (timer) {
       [timer invalidate];
       timer = nil;
@@ -196,6 +179,135 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
     [timer retain];
   }
 }
+
+static void handleTimesUp() {
+  // Present an alert view explaining the situation, and providing options.
+  if (!timesUpAlertController) {
+    timesUpAlertController = [UIAlertController alertControllerWithTitle:@"Time's Up!" message:@"You've run out of time for today. Here are your options:" preferredStyle:UIAlertControllerStyleAlert];
+
+    // Add textField
+    __block UITextField *localTextField;// To avoid increasing the retain count on the alert
+    [timesUpAlertController addTextFieldWithConfigurationHandler:^(UITextField *textfield) {
+      localTextField = textfield;
+      textfield.secureTextEntry = YES;
+      textfield.keyboardType = UIKeyboardTypeNumberPad;
+    }];
+
+    [timesUpAlertController addAction:[UIAlertAction actionWithTitle:@"Add 1 Hour" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+      NSString *enteredPasscode = localTextField.text;
+      if ([enteredPasscode isEqualToString:passcode]) {// Check for Correct password.
+        // Add 3600 to extraTime, notify of settings changed.
+        NSNumber *extraTime = [[NSUserDefaults standardUserDefaults] objectForKey:@"extraTime" inDomain:uniqueDomainString];
+        [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:([extraTime floatValue] + 3600.0)] forKey:@"extraTime" inDomain:uniqueDomainString];
+
+        tweakSettingsChanged(nil, nil, nil, nil, nil);
+
+      } else {// Notify the user of incorrect password.
+        UIAlertController *dismissAC = [UIAlertController alertControllerWithTitle:@"Incorrect Passcode" message:nil preferredStyle:UIAlertControllerStyleAlert];
+        [dismissAC addAction:[UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
+          handleTimesUp();// Return to the initial alert view
+        }]];
+        [dismissAC show];
+      }
+    }]];
+
+    // In future version
+    // [timesUpAlertController addAction:[UIAlertAction actionWithTitle:@"Open Settings" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action){
+    //   SBApplication *settingsApp = [[NSClassFromString(@"SBApplicationController") sharedInstance] applicationWithBundleIdentifier:@"com.apple.Preferences"];
+    //   [[NSClassFromString(@"SBUIController") sharedInstanceIfExists] activateApplication:settingsApp];
+    //
+    //   [pcfios performSelector:@selector(handleTimesUp) withObject:nil afterDelay:300];
+    // }]];
+    //
+    // [timesUpAlertController addAction:[UIAlertAction actionWithTitle:@"Open Phone" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action){
+    //   SBApplication *phoneApp = [[NSClassFromString(@"SBApplicationController") sharedInstance] applicationWithBundleIdentifier:@"com.yourcompany.mobilephone"];
+    //   [[NSClassFromString(@"SBUIController") sharedInstanceIfExists] activateApplication:phoneApp];
+    //
+    //   [pcfios performSelector:@selector(handleTimesUp) withObject:nil afterDelay:300];
+    // }]];
+    //
+    // [timesUpAlertController addAction:[UIAlertAction actionWithTitle:@"Open Messages" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action){
+    //   SBApplication *messagesApp = [[NSClassFromString(@"SBApplicationController") sharedInstance] applicationWithBundleIdentifier:@"com.apple.MobileSMS"];
+    //   [[NSClassFromString(@"SBUIController") sharedInstanceIfExists] activateApplication:messagesApp];
+    //
+    //   [pcfios performSelector:@selector(handleTimesUp) withObject:nil afterDelay:300];
+    // }]];
+  }
+
+  [timesUpAlertController show];
+}
+
+static void decrementTimeSaved() {// Decrements the "savedTimeLeft" and goes through a series of checks
+  savedTimeLeft -= 300.0;// This gets pinged every 5 minutes
+  if (savedTimeLeft < 0 && enabled && timer) {
+    [timer invalidate];
+    timer = nil;
+    [timer release];
+
+    savedTimeLeft = 0;
+
+    handleTimesUp();
+  }
+
+  [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
+  [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+@implementation PCFiOS
+- (void)decrementTimeSaved {
+  decrementTimeSaved();
+}
+
+- (void)handleTimesUp {
+  handleTimesUp();
+}
+
+@end
+
+// http://stackoverflow.com/questions/26554894/how-to-present-uialertcontroller-when-not-in-a-view-controller
+@implementation UIAlertController (Window)
+@dynamic alertWindow;
+
+- (void)setAlertWindow:(UIWindow *)alertWindow {
+    objc_setAssociatedObject(self, @selector(alertWindow), alertWindow, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (UIWindow *)alertWindow {
+    return objc_getAssociatedObject(self, @selector(alertWindow));
+}
+
+- (void)show {
+    [self show:YES];
+}
+
+- (void)show:(BOOL)animated {
+    self.alertWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    self.alertWindow.rootViewController = [[UIViewController alloc] init];
+
+    id<UIApplicationDelegate> delegate = [UIApplication sharedApplication].delegate;
+    // Applications that does not load with UIMainStoryboardFile might not have a window property:
+    if ([delegate respondsToSelector:@selector(window)]) {
+        // we inherit the main window's tintColor
+        self.alertWindow.tintColor = delegate.window.tintColor;
+    }
+
+    // window level is above the top window (this makes the alert, if it's a sheet, show over the keyboard)
+    UIWindow *topWindow = [UIApplication sharedApplication].windows.lastObject;
+    self.alertWindow.windowLevel = topWindow.windowLevel + 1;
+
+    [self.alertWindow makeKeyAndVisible];
+    [self.alertWindow.rootViewController presentViewController:self animated:animated completion:nil];
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+
+    // precaution to insure window gets destroyed
+    self.alertWindow.hidden = YES;
+    self.alertWindow = nil;
+}
+
+@end
 
 %ctor {// Called when loading the binary.
   // Fetch the latest preferences.
@@ -227,15 +339,9 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
       [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
       savedTimeLeft = [timeLimitForToday floatValue];
 
-      // Mark the timer to start.
-      timersShouldRun = YES;
-
-    } else {//Otherwise, resume timers.
-      timersShouldRun = YES;
+      // New day, reset any extraTime
+      [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:0.0] forKey:@"extraTime" inDomain:uniqueDomainString];
     }
-
-  } else {
-    timersShouldRun = NO;
   }
 
   // Update "lastLaunchDate".
@@ -289,27 +395,8 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
 
     return;
 
-  } else if (applicationIconWithLocationShouldLaunch(self, location)) {// Check wether the time has run out.
-    %orig();
-
-  } else {// Time's up!
-    // Show a alert view.
-    int seconds = 0;
-    int minutes = 0;
-    int hours = 0;
-
-    if (savedTimeLeft > 0) {
-      seconds = (int)savedTimeLeft % 60;
-      minutes = ((int)savedTimeLeft / 60) % 60;
-      hours = (int)savedTimeLeft / 3600;
-    }
-
-    NSString *messageString = [NSString stringWithFormat:@"%02d:%02d:%02d",hours, minutes, seconds];
-
-    UIAlertController *timesUpAC = [UIAlertController alertControllerWithTitle:@"Times Up!" message:messageString preferredStyle:UIAlertControllerStyleAlert];
-    [timesUpAC addAction:[UIAlertAction actionWithTitle:@"Aww" style:UIAlertActionStyleDestructive handler:nil]];
-    [topWindow.rootViewController presentViewController:timesUpAC animated:YES completion:nil];
   }
+  %orig();
 }
 
 %end

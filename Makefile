@@ -2,8 +2,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = ParentalControlsForiOS
 ParentalControlsForiOS_FILES = Tweak.xm
-ParentalControlsForiOS_FRAMEWORKS = UIKit Security
-ParentalControlsForiOS_PRIVATE_FRAMEWORKS = GraphicsServices
+ParentalControlsForiOS_FRAMEWORKS = UIKit
 
 SUBPROJECTS += pcfiospreferences
 
