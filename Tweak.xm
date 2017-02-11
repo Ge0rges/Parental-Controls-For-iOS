@@ -123,7 +123,7 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
   }
 
   getLatestPreferences();
-  
+
   // Check if this the following "lockstate" notification froma  previous locckcomplete. If so, reset our indicator.
   if (recentlyLocked) {
     recentlyLocked = NO;
@@ -213,6 +213,8 @@ static void handleTimesUp() {
       } else {// Notify the user of incorrect password.
         UIAlertController *dismissAC = [UIAlertController alertControllerWithTitle:@"Incorrect Passcode" message:nil preferredStyle:UIAlertControllerStyleAlert];
         [dismissAC addAction:[UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
+          timesUpAlertController = nil;
+          [timesUpAlertController release];
           handleTimesUp();// Return to the initial alert view
         }]];
         [dismissAC show];

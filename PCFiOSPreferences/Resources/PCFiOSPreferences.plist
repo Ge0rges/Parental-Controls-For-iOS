@@ -70,7 +70,7 @@
 			<key>defaults</key>
 			<string>com.ge0rges.pcfios</string>
 			<key>key</key>
-			<string>hoursWeekdays</string>
+			<string>hoursWeekdaysSlider</string>
 			<key>cellClass</key>
 			<string>PCFiOSSliderCell</string>
 			<key>PostNotification</key>
@@ -94,7 +94,7 @@
 			<key>defaults</key>
 			<string>com.ge0rges.pcfios</string>
 			<key>key</key>
-			<string>hoursWeekends</string>
+			<string>hoursWeekendsSlider</string>
 			<key>cellClass</key>
 			<string>PCFiOSSliderCell</string>
 			<key>PostNotification</key>

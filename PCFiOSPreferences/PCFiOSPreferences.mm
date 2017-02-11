@@ -208,7 +208,7 @@ static PCFiOSListController *pcfiosListController;// Used to dismiss settings.
     // Set tags to identify the weekday and weekend sliders
     // Custom slider value logic (since it shows hours and we store seconds)
     if (!tagSet) {
-      [(UISlider *)[self control] setTag:1];
+      [slider setTag:1];
       tagSet = YES;
 
       NSNumber *sliderValueWeekends = [[NSUserDefaults standardUserDefaults] objectForKey:@"hoursWeekends" inDomain:uniqueDomainString];
@@ -230,11 +230,11 @@ static PCFiOSListController *pcfiosListController;// Used to dismiss settings.
 }
 
 - (void)roundSlider:(UISlider *)slider {
-  // Round the slider to 0.5 intervals
+  // Round the slider at 0.5 intervals
   float sliderValue = roundf(slider.value * 2.0) * 0.5;
   [slider setValue:sliderValue animated:YES];
 
-  //write this value to the plist
+  // Write this value to the plist
   if (slider.tag == 1) {// Check which slider it is
     // Weekday slider
     [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:(sliderValue*3600)] forKey:@"hoursWeekdays" inDomain:uniqueDomainString];
