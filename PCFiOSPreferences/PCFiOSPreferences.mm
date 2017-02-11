@@ -49,7 +49,14 @@ static PCFiOSListController *pcfiosListController;// Used to dismiss settings.
   passcode = [[NSUserDefaults standardUserDefaults] objectForKey:@"password" inDomain:uniqueDomainString];
 
   // Get the enabled state out of the UserDefaults.
-  enabled = [[[NSUserDefaults standardUserDefaults] objectForKey:@"enabled" inDomain:uniqueDomainString] boolValue];
+  NSNumber *enabledNumber = [[NSUserDefaults standardUserDefaults] objectForKey:@"enabled" inDomain:uniqueDomainString];
+  if (enabledNumber) {
+    enabled = [enabledNumber boolValue];
+
+  } else {
+    [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithBool:NO] forKey:@"enabled" inDomain:uniqueDomainString];
+    enabled = NO;
+  }
 }
 
 

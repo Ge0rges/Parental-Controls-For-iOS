@@ -115,9 +115,15 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
 
   // "com.apple.springboard.lockcomplete" indicates locked device. "com.apple.springboard.lockstate" indicates lock status changed.
   // Therefore lockstate is called when devie is locked *and* unlocked.
-  NSString *lockState = (__bridge NSString*)name;
-  getLatestPreferences();
+  NSString *lockState;
+  if (name) {
+    lockState = (__bridge NSString*)name;
+  } else {
+    lockState = @"selfCalled";
+  }
 
+  getLatestPreferences();
+  
   // Check if this the following "lockstate" notification froma  previous locckcomplete. If so, reset our indicator.
   if (recentlyLocked) {
     recentlyLocked = NO;
@@ -133,6 +139,8 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
     // Hide the parental blocking window
     if (timesUpAlertController) {
       [timesUpAlertController dismissViewControllerAnimated:NO  completion:nil];
+      timesUpAlertController = nil;
+      [timesUpAlertController release];
     }
 
     // Mark as recently locked for a few miliseconds.
@@ -140,7 +148,7 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
 
   } else if (enabled && !timer && !recentlyLocked && savedTimeLeft > 0) {// Device unlocked with time, start a timer.
     // Ping every 5 minutes.
-    timer = [NSTimer scheduledTimerWithTimeInterval:300.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
+    timer = [NSTimer scheduledTimerWithTimeInterval:5.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
     [timer retain];
 
   } else if (enabled && savedTimeLeft <= 0 && !recentlyLocked) {// Device unlocked with no time, handle times up.
@@ -174,8 +182,8 @@ static void tweakSettingsChanged(CFNotificationCenterRef center, void *observer,
       [timer release];
     }
 
-    // Change 1.0 to 500 in production
-    timer = [NSTimer scheduledTimerWithTimeInterval:300.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
+    // Every 5 seconds
+    timer = [NSTimer scheduledTimerWithTimeInterval:5.0 target:pcfios selector:@selector(decrementTimeSaved) userInfo:nil repeats:YES];
     [timer retain];
   }
 }
@@ -238,19 +246,19 @@ static void handleTimesUp() {
 }
 
 static void decrementTimeSaved() {// Decrements the "savedTimeLeft" and goes through a series of checks
-  savedTimeLeft -= 300.0;// This gets pinged every 5 minutes
-  if (savedTimeLeft < 0 && enabled && timer) {
-    [timer invalidate];
-    timer = nil;
-    [timer release];
+savedTimeLeft -= 5.0;// This gets pinged every 5 minutes
+if (savedTimeLeft < 0 && enabled && timer) {
+  [timer invalidate];
+  timer = nil;
+  [timer release];
 
-    savedTimeLeft = 0;
+  savedTimeLeft = 0;
 
-    handleTimesUp();
-  }
+  handleTimesUp();
+}
 
-  [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
-  [[NSUserDefaults standardUserDefaults] synchronize];
+[[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:savedTimeLeft] forKey:@"savedTimeLeft" inDomain:uniqueDomainString];
+[[NSUserDefaults standardUserDefaults] synchronize];
 }
 
 @implementation PCFiOS
@@ -269,42 +277,42 @@ static void decrementTimeSaved() {// Decrements the "savedTimeLeft" and goes thr
 @dynamic alertWindow;
 
 - (void)setAlertWindow:(UIWindow *)alertWindow {
-    objc_setAssociatedObject(self, @selector(alertWindow), alertWindow, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+  objc_setAssociatedObject(self, @selector(alertWindow), alertWindow, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (UIWindow *)alertWindow {
-    return objc_getAssociatedObject(self, @selector(alertWindow));
+  return objc_getAssociatedObject(self, @selector(alertWindow));
 }
 
 - (void)show {
-    [self show:YES];
+  [self show:YES];
 }
 
 - (void)show:(BOOL)animated {
-    self.alertWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-    self.alertWindow.rootViewController = [[UIViewController alloc] init];
+  self.alertWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+  self.alertWindow.rootViewController = [[UIViewController alloc] init];
 
-    id<UIApplicationDelegate> delegate = [UIApplication sharedApplication].delegate;
-    // Applications that does not load with UIMainStoryboardFile might not have a window property:
-    if ([delegate respondsToSelector:@selector(window)]) {
-        // we inherit the main window's tintColor
-        self.alertWindow.tintColor = delegate.window.tintColor;
-    }
+  id<UIApplicationDelegate> delegate = [UIApplication sharedApplication].delegate;
+  // Applications that does not load with UIMainStoryboardFile might not have a window property:
+  if ([delegate respondsToSelector:@selector(window)]) {
+    // we inherit the main window's tintColor
+    self.alertWindow.tintColor = delegate.window.tintColor;
+  }
 
-    // window level is above the top window (this makes the alert, if it's a sheet, show over the keyboard)
-    UIWindow *topWindow = [UIApplication sharedApplication].windows.lastObject;
-    self.alertWindow.windowLevel = topWindow.windowLevel + 1;
+  // window level is above the top window (this makes the alert, if it's a sheet, show over the keyboard)
+  UIWindow *topWindow = [UIApplication sharedApplication].windows.lastObject;
+  self.alertWindow.windowLevel = topWindow.windowLevel + 1;
 
-    [self.alertWindow makeKeyAndVisible];
-    [self.alertWindow.rootViewController presentViewController:self animated:animated completion:nil];
+  [self.alertWindow makeKeyAndVisible];
+  [self.alertWindow.rootViewController presentViewController:self animated:animated completion:nil];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
-    [super viewDidDisappear:animated];
+  [super viewDidDisappear:animated];
 
-    // precaution to insure window gets destroyed
-    self.alertWindow.hidden = YES;
-    self.alertWindow = nil;
+  // precaution to insure window gets destroyed
+  self.alertWindow.hidden = YES;
+  self.alertWindow = nil;
 }
 
 @end
