@@ -323,7 +323,7 @@ if (savedTimeLeft < 0 && enabled && timer) {
 
 @end
 
-static void setupTweakForTimeEvent() {
+static void setupTweakForTimeEvent(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
   // The current date will be needed in both scopes.
   NSDate *todayDate = [NSDate date];
 
@@ -371,7 +371,7 @@ static void setupTweakForTimeEvent() {
   [pcfios retain];
 
   // Launch Setup
-  setupTweakForTimeEvent();
+  setupTweakForTimeEvent(nil, nil, nil, nil, nil);
 
   // Register for tweak preference changes notifications (must do this even if tweak is disabled, in case it gets enabled).
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, tweakSettingsChanged, (CFStringRef)uniqueNotificationString, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
@@ -381,7 +381,7 @@ static void setupTweakForTimeEvent() {
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (__bridge CFStringRef)@"com.apple.springboard.lockcomplete", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
   // Register for day changes
-  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, setupTweakForTimeEvent, NSCalendarDayChangedNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, setupTweakForTimeEvent, (__bridge CFStringRef)NSCalendarDayChangedNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
 }
 
