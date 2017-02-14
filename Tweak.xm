@@ -60,13 +60,13 @@ static NSString *passcode = @"";// Contains the user set passcode. Use -getLates
 static BOOL enabled;// Contains the user set BOOL that determines wether or not the tweak should run. Use -getLatestPreferences to fetch.
 static BOOL recentlyLocked = NO;// used to keep track of the lockstate notifications.
 
-static UIAlertController *timesUpAlertController;// The alert shown when time's up.
+static UIAlertController *timesUpAlertController = nil;// The alert shown when time's up.
 
-static NSTimer *timer;// The main timer
+static NSTimer *timer = nil;// The main timer
 
 static float savedTimeLeft;// Time left VARIABLES
 
-static PCFiOS *pcfios;// Variable to hold our class in
+static PCFiOS *pcfios = nil;// Variable to hold our class in
 
 /* IMPLEMENTATIONS AND FUNCTIONS*/
 
@@ -138,7 +138,7 @@ static void lockStateChanged(CFNotificationCenterRef center, void *observer, CFS
     }
     // Hide the parental blocking window
     if (timesUpAlertController) {
-      [timesUpAlertController dismissViewControllerAnimated:NO  completion:nil];
+      [timesUpAlertController dismissViewControllerAnimated:NO completion:nil];
       timesUpAlertController = nil;
       [timesUpAlertController release];
     }
@@ -208,6 +208,9 @@ static void handleTimesUp() {
         NSNumber *extraTime = [[NSUserDefaults standardUserDefaults] objectForKey:@"extraTime" inDomain:uniqueDomainString];
         [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:([extraTime floatValue] + 3600.0)] forKey:@"extraTime" inDomain:uniqueDomainString];
 
+        timesUpAlertController = nil;
+        [timesUpAlertController release];
+
         tweakSettingsChanged(nil, nil, nil, nil, nil);
 
       } else {// Notify the user of incorrect password.
@@ -215,6 +218,7 @@ static void handleTimesUp() {
         [dismissAC addAction:[UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
           timesUpAlertController = nil;
           [timesUpAlertController release];
+
           handleTimesUp();// Return to the initial alert view
         }]];
         [dismissAC show];
@@ -319,18 +323,11 @@ if (savedTimeLeft < 0 && enabled && timer) {
 
 @end
 
-%ctor {// Called when loading the binary.
-  // Fetch the latest preferences.
-  getLatestPreferences();
-
-  // Init our class once and for all.
-  pcfios = [PCFiOS new];
-  [pcfios retain];
-
+static void setupTweakForTimeEvent() {
   // The current date will be needed in both scopes.
   NSDate *todayDate = [NSDate date];
 
-  // Set the timit limit for today before all else.
+  // Get the timit limit for today before all else.
   NSNumber *timeLimitForToday = timeLimitForDate(todayDate);
   [[NSUserDefaults standardUserDefaults] setObject:timeLimitForToday forKey:@"timeLimitToday" inDomain:uniqueDomainString];
 
@@ -351,11 +348,30 @@ if (savedTimeLeft < 0 && enabled && timer) {
 
       // New day, reset any extraTime
       [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithFloat:0.0] forKey:@"extraTime" inDomain:uniqueDomainString];
+
+      // Remove the alert view if it exists
+      if (timesUpAlertController) {
+        [timesUpAlertController dismissViewControllerAnimated:YES completion:nil];
+        timesUpAlertController = nil;
+        [timesUpAlertController release];
+      }
     }
   }
 
   // Update "lastLaunchDate".
   [[NSUserDefaults standardUserDefaults] setObject:todayDate forKey:@"lastLaunchDate" inDomain:uniqueDomainString];
+}
+
+%ctor {// Called when loading the binary.
+  // Fetch the latest preferences.
+  getLatestPreferences();
+
+  // Init our class once and for all.
+  pcfios = [PCFiOS new];
+  [pcfios retain];
+
+  // Launch Setup
+  setupTweakForTimeEvent();
 
   // Register for tweak preference changes notifications (must do this even if tweak is disabled, in case it gets enabled).
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, tweakSettingsChanged, (CFStringRef)uniqueNotificationString, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
@@ -363,6 +379,10 @@ if (savedTimeLeft < 0 && enabled && timer) {
   // Register for lock state changes
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (__bridge CFStringRef)@"com.apple.springboard.lockstate", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, lockStateChanged, (__bridge CFStringRef)@"com.apple.springboard.lockcomplete", NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+
+  // Register for day changes
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, setupTweakForTimeEvent, NSCalendarDayChangedNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+
 }
 
 %dtor {// Called when tweak gets unloaded.
