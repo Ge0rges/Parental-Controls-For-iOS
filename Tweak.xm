@@ -192,6 +192,7 @@ static void handleTimesUp() {
   // Present an alert view explaining the situation, and providing options.
   if (!timesUpAlertController) {
     timesUpAlertController = [UIAlertController alertControllerWithTitle:@"Time's Up!" message:@"You've run out of time for today. Here are your options:" preferredStyle:UIAlertControllerStyleAlert];
+    [timesUpAlertController retain];
 
     // Add textField
     __block UITextField *localTextField;// To avoid increasing the retain count on the alert
